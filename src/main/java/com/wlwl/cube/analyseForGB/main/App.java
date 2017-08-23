@@ -1,4 +1,4 @@
-package com.wlwl.cube.analyseForGB;
+package com.wlwl.cube.analyseForGB.main;
 
 /**
  * Hello world!
