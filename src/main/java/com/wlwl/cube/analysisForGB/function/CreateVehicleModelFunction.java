@@ -38,7 +38,6 @@ public class CreateVehicleModelFunction extends BaseFunction {
 	public void execute(TridentTuple tuple, TridentCollector collector) {
 		try {
 			String sentence = tuple.getString(0);
-
 			vehicle = JsonUtils.deserialize(
 					sentence.replace("TIMESTAMP", "timestamp").replaceAll("DATIME_RX", "datime_RX"),
 					ObjectModelOfKafka.class);

@@ -14,6 +14,7 @@ import java.util.Date;
 import com.wlwl.cube.analysisForGB.tools.JsonUtils;
 
 
+
 /**
  * @ClassName: VehicleStatistic
  * @Description: TODO车辆统计类

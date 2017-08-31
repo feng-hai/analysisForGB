@@ -34,9 +34,11 @@ import org.apache.storm.tuple.Fields;
 
 import com.wlwl.cube.analysisForGB.function.CreateVehicleModelFunction;
 import com.wlwl.cube.analysisForGB.function.DeviceIDFunction;
+import com.wlwl.cube.analysisForGB.function.SaveValueToRedisFunction;
 import com.wlwl.cube.analysisForGB.function.VehicleAlarmFetchFunction;
 import com.wlwl.cube.analysisForGB.function.VehicleAlarmFilterFunction;
-
+import com.wlwl.cube.analysisForGB.state.analysis.HBaseQueryVehicleFactory;
+import com.wlwl.cube.analysisForGB.state.analysis.HBaseVehicleUpdate;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.storm.kafka.StringScheme;
@@ -72,7 +74,7 @@ public class TridentKafkaSpout {
 
 	public TransactionalTridentKafkaSpout createKafkaSpout() {
 		ZkHosts hosts = new ZkHosts(zkUrl);
-		TridentKafkaConfig config = new TridentKafkaConfig(hosts, topicId, "vehicleCharge");
+		TridentKafkaConfig config = new TridentKafkaConfig(hosts, topicId, "alarmGB");
 		config.scheme = new SchemeAsMultiScheme(new StringScheme());
 		// Consume new data from the topic
 		config.ignoreZkOffsets = true;
@@ -102,36 +104,49 @@ public class TridentKafkaSpout {
 		// addDRPCStream(tridentTopology, addTridentState(tridentTopology),
 		// drpc);
 
-		Stream stream = tridentTopology.newStream("spoutCharge", createKafkaSpout()).parallelismHint(15)
+		Stream stream = tridentTopology.newStream("spoutGBAlarm", createKafkaSpout()).parallelismHint(15)
 				.each(new Fields("str"), new CreateVehicleModelFunction(), new Fields("vehicle")).parallelismHint(2)
-				.each(new Fields("vehicle"), new DeviceIDFunction(), new Fields("deviceId")).parallelismHint(2)
-		.partitionBy(new Fields("deviceId")).parallelismHint(2) ;
-		//报警
-		// stream.each(new Fields("vehicle"), new VehicleAlarmFilterFunction()).parallelismHint(2)
-		stream.each(new Fields("vehicle"), new VehicleAlarmFetchFunction(), new Fields("vehicleInfo"))
-		.parallelismHint(6).
-		 partitionPersist(new com.wlwl.cube.analysisForGB.state.vehicleAlarm.LocationDBFactory(),new Fields("vehicleInfo"), new com.wlwl.cube.analysisForGB.state.vehicleAlarm.LocationUpdater())
-		.parallelismHint(10);
-		
-				//.partitionBy(new Fields("deviceId")).parallelismHint(2);
-		
-//		
-//		//充电
-//		stream.partitionPersist(new LocationDBFactory(statusMapCharge), new Fields("vehicle"), new LocationUpdater())
-//				.parallelismHint(25);
-//		//状态
-//		stream.partitionPersist(new com.wlwl.cube.ananlyse.state.query.LocationDBFactory(statusMapstatus),
-//				new Fields("vehicle"), new com.wlwl.cube.ananlyse.state.query.LocationUpdater()).parallelismHint(10);
-//		//报警
-//		stream.each(new Fields("vehicle"), new VehicleAlarmFetchFunction(statusMapAlarm), new Fields("vehicleInfo"))
-//				.parallelismHint(6).partitionPersist(new com.wlwl.cube.ananlyse.state.alarm.LocationDBFactory(),
-//						new Fields("vehicleInfo"), new com.wlwl.cube.ananlyse.state.alarm.LocationUpdater())
-//				.parallelismHint(10);
-//		//分析
-//		stream.each(new Fields("deviceId", "vehicle"), new SaveValueToRedisFunction(), new Fields("vehicleInfo"))
-//		.parallelismHint(10)
-//		//.each(new Fields("countInfo"), new SaveValueToHBaseFunction(), new Fields("vehicleInfo"))
-//		.partitionPersist(new HBaseQueryVehicleFactory(), new Fields("vehicleInfo"), new HBaseVehicleUpdate()).parallelismHint(16);
+				.each(new Fields("vehicle"), new DeviceIDFunction(), new Fields("deviceId")).parallelismHint(2);
+
+		// 报警
+		// stream.each(new Fields("vehicle"), new
+		// VehicleAlarmFilterFunction()).parallelismHint(2)
+		stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
+				.each(new Fields("vehicle"), new VehicleAlarmFetchFunction(), new Fields("vehicleInfo"))
+				.parallelismHint(6)
+				.partitionPersist(new com.wlwl.cube.analysisForGB.state.vehicleAlarm.LocationDBFactory(),
+						new Fields("vehicleInfo"), new com.wlwl.cube.analysisForGB.state.vehicleAlarm.LocationUpdater())
+				.parallelismHint(10);
+
+		// .partitionBy(new Fields("deviceId")).parallelismHint(2);
+
+		//
+		// //充电
+		// stream.partitionPersist(new LocationDBFactory(statusMapCharge), new
+		// Fields("vehicle"), new LocationUpdater())
+		// .parallelismHint(25);
+		// //状态
+		stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
+				.partitionPersist(new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationDBFactory(),
+						new Fields("vehicle"), new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationUpdater())
+				.parallelismHint(10);
+		// //报警
+		// stream.each(new Fields("vehicle"), new
+		// VehicleAlarmFetchFunction(statusMapAlarm), new Fields("vehicleInfo"))
+		// .parallelismHint(6).partitionPersist(new
+		// com.wlwl.cube.ananlyse.state.alarm.LocationDBFactory(),
+		// new Fields("vehicleInfo"), new
+		// com.wlwl.cube.ananlyse.state.alarm.LocationUpdater())
+		// .parallelismHint(10);
+		// //分析
+		 stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
+		 .each(new Fields("deviceId", "vehicle"), new
+		 SaveValueToRedisFunction(), new Fields("vehicleInfo"))
+		 .parallelismHint(10)
+		 //.each(new Fields("countInfo"), new SaveValueToHBaseFunction(), new
+		// Fields("vehicleInfo"))
+		 .partitionPersist(new HBaseQueryVehicleFactory(), new
+		 Fields("vehicleInfo"), new HBaseVehicleUpdate()).parallelismHint(16);
 
 		return tridentTopology.build();
 	}
@@ -142,41 +157,48 @@ public class TridentKafkaSpout {
 	// type=2 报警
 	// * 加载数据库中数据，安装数据字典存储
 	// */
-//	private Map<String, List<VehicleStatusBean>> loadData(String type, String status) {
-//		String sql = "";
-//		if (status.equals("3"))
-//			sql = "SELECT code,option,value,VALUE_LAST ,status,REMARKS,ALARM_LEVEL,ALARM_NAME,fiber_unid  FROM  cube.PDA_CUSTOM_SETUP where type=1 and flag_del=0 and status=3 order by INX desc";
-//		else {
-//			sql = "SELECT code,option,value,VALUE_LAST ,status,REMARKS,ALARM_LEVEL,ALARM_NAME,fiber_unid  FROM  cube.PDA_CUSTOM_SETUP where type="
-//					+ type + " and flag_del=0  order by INX desc";
-//		}
-//		List<Object> params = new CopyOnWriteArrayList<Object>();
-//		List<VehicleStatusBean> list = null;
-//		JdbcUtils jdbcUtils = SingletonJDBC.getJDBC();
-//		try {
-//
-//			list = (List<VehicleStatusBean>) jdbcUtils.findMoreRefResult(sql, params, VehicleStatusBean.class);
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} finally {
-//			jdbcUtils.releaseConn();
-//		}
-//		Map<String, List<VehicleStatusBean>> map = new ConcurrentHashMap<>();
-//		for (VehicleStatusBean vsbean : list) {
-//			if (!map.containsKey(vsbean.getFIBER_UNID())) {
-//				List<VehicleStatusBean> temp = new ArrayList<VehicleStatusBean>();
-//				temp.add(vsbean);
-//				map.put(vsbean.getFIBER_UNID(), temp);
-//			} else {
-//				List<VehicleStatusBean> temp = map.get(vsbean.getFIBER_UNID());
-//				temp.add(vsbean);
-//				map.replace(vsbean.getFIBER_UNID(), temp);
-//			}
-//		}
-//		return map;
-//
-//	}
+	// private Map<String, List<VehicleStatusBean>> loadData(String type, String
+	// status) {
+	// String sql = "";
+	// if (status.equals("3"))
+	// sql = "SELECT code,option,value,VALUE_LAST
+	// ,status,REMARKS,ALARM_LEVEL,ALARM_NAME,fiber_unid FROM
+	// cube.PDA_CUSTOM_SETUP where type=1 and flag_del=0 and status=3 order by
+	// INX desc";
+	// else {
+	// sql = "SELECT code,option,value,VALUE_LAST
+	// ,status,REMARKS,ALARM_LEVEL,ALARM_NAME,fiber_unid FROM
+	// cube.PDA_CUSTOM_SETUP where type="
+	// + type + " and flag_del=0 order by INX desc";
+	// }
+	// List<Object> params = new CopyOnWriteArrayList<Object>();
+	// List<VehicleStatusBean> list = null;
+	// JdbcUtils jdbcUtils = SingletonJDBC.getJDBC();
+	// try {
+	//
+	// list = (List<VehicleStatusBean>) jdbcUtils.findMoreRefResult(sql, params,
+	// VehicleStatusBean.class);
+	// } catch (Exception e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// } finally {
+	// jdbcUtils.releaseConn();
+	// }
+	// Map<String, List<VehicleStatusBean>> map = new ConcurrentHashMap<>();
+	// for (VehicleStatusBean vsbean : list) {
+	// if (!map.containsKey(vsbean.getFIBER_UNID())) {
+	// List<VehicleStatusBean> temp = new ArrayList<VehicleStatusBean>();
+	// temp.add(vsbean);
+	// map.put(vsbean.getFIBER_UNID(), temp);
+	// } else {
+	// List<VehicleStatusBean> temp = map.get(vsbean.getFIBER_UNID());
+	// temp.add(vsbean);
+	// map.replace(vsbean.getFIBER_UNID(), temp);
+	// }
+	// }
+	// return map;
+	//
+	// }
 
 	/**
 	 * Return the consumer topology config.
@@ -197,22 +219,23 @@ public class TridentKafkaSpout {
 	 *
 	 * @return the storm topology
 	 */
-//	@SuppressWarnings({ "rawtypes", "unchecked" })
-//	public StormTopology buildProducerTopology(Properties prop) {
-//		TopologyBuilder builder = new TopologyBuilder();
-//		builder.setSpout("spout", new RandomSentenceSpout(), 2);
-//		/**
-//		 * The output field of the RandomSentenceSpout ("word") is provided as
-//		 * the boltMessageField so that this gets written out as the message in
-//		 * the kafka topic.
-//		 */
-//
-//		KafkaBolt bolt = new KafkaBolt().withProducerProperties(prop)
-//				.withTopicSelector(new DefaultTopicSelector("test"))
-//				.withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("key", "word"));
-//		builder.setBolt("forwardToKafka", bolt, 1).shuffleGrouping("spout");
-//		return builder.createTopology();
-//	}
+	// @SuppressWarnings({ "rawtypes", "unchecked" })
+	// public StormTopology buildProducerTopology(Properties prop) {
+	// TopologyBuilder builder = new TopologyBuilder();
+	// builder.setSpout("spout", new RandomSentenceSpout(), 2);
+	// /**
+	// * The output field of the RandomSentenceSpout ("word") is provided as
+	// * the boltMessageField so that this gets written out as the message in
+	// * the kafka topic.
+	// */
+	//
+	// KafkaBolt bolt = new KafkaBolt().withProducerProperties(prop)
+	// .withTopicSelector(new DefaultTopicSelector("test"))
+	// .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper("key",
+	// "word"));
+	// builder.setBolt("forwardToKafka", bolt, 1).shuffleGrouping("spout");
+	// return builder.createTopology();
+	// }
 
 	/**
 	 * Returns the storm config for the topology that publishes sentences to

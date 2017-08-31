@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.wlwl.cube.analysisForGB.tools.PropertyResource;
+
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -22,7 +22,7 @@ import redis.clients.jedis.Response;
 public class RedisUtils {
 
 	private JedisPool pool = null;
-	private static final String ip =PropertyResource.getInstance().getProperties().get("REDISURL");
+	private static final String ip ="10.117.177.94";//PropertyResource.getInstance().getProperties().get("REDISURL");
 	private static final Integer port = 6379;
 
 	/**

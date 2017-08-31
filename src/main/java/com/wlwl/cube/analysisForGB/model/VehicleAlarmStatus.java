@@ -1,20 +1,17 @@
 package com.wlwl.cube.analysisForGB.model;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.apache.htrace.fasterxml.jackson.core.type.TypeReference;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.esotericsoftware.minlog.Log;
 import com.wlwl.cube.analysisForGB.redis.RedisSingleton;
 import com.wlwl.cube.analysisForGB.redis.RedisUtils;
+import com.wlwl.cube.analysisForGB.tools.JsonUtils;
 
 public class VehicleAlarmStatus {
 	private ObjectModelOfKafka omokObject = null;
@@ -22,7 +19,9 @@ public class VehicleAlarmStatus {
 
 	private static Map<String, String> alarmKeys = new ConcurrentHashMap<>();
 
-	private static final String aiid_key = "ALARM_AIID:";
+	private static final String aiid_key = "ALARM_AIID_GB:";
+	
+	private static final Logger log=LoggerFactory.getLogger(VehicleAlarmStatus.class);
 	Map<String, List<VehicleStatusBean>> statusMap = null;
 
 	public VehicleAlarmStatus(ObjectModelOfKafka omok) {
@@ -32,13 +31,18 @@ public class VehicleAlarmStatus {
 
 	public List<VehicleAlarmBean> getAlarmBean() {
 
+		
+		
 		List<VehicleAlarmBean> alarmList = new ArrayList<VehicleAlarmBean>();
 		try {
 			Pair vehiclePair = this.omokObject.getVehicle_UNID();
+			log.info("报警分析开始：");
 			if (vehiclePair == null) {
 				return alarmList;
 			}
+			log.info("报警车辆信息："+vehiclePair.toString());
 			String date = this.omokObject.getDATIME_RX();
+			log.info("报警日期："+date);
 			if (date == null) {
 				return alarmList;
 			}
@@ -46,6 +50,10 @@ public class VehicleAlarmStatus {
 			if (unid == null) {
 				return alarmList;
 			}
+			
+			log.info("当前报警个数："+alarmKeys.size());
+			log.info("当前车辆是否有报警："+this.omokObject.getAlarmFlag());
+			
 			if (alarmKeys.size() == 0 && this.omokObject.getAlarmFlag() == 0) {
 				return alarmList;
 			}
@@ -58,6 +66,8 @@ public class VehicleAlarmStatus {
 				String fiber_unid = lastValue.get(3);
 				if (lat != null && lng != null && domainId != null && fiber_unid != null) {
 					List<Pair> pairs = this.omokObject.getAlarmList();
+					log.info("有报警"+JsonUtils.serialize(pairs));
+					
 					for (Pair pair : pairs) {
 						if (pair != null) {
 							Boolean isTrue = pair.getValue().equals("1");
@@ -88,6 +98,7 @@ public class VehicleAlarmStatus {
 									alarm.setUnid(UNID.getUnid());
 									alarmList.add(alarm);
 									alarmKeys.put(aiid_key + unid + code, alarm.getUnid());
+									
 									alarmKeys.put(aiid_key + unid + code + "suf", alarm.getTableSuf());
 								}
 
@@ -103,6 +114,7 @@ public class VehicleAlarmStatus {
 										alarmList.add(alarm);
 										alarmKeys.remove(aiid_key + unid + code);
 										alarmKeys.remove(aiid_key + unid + code + "suf");
+										
 									}
 								}
 							}
@@ -114,6 +126,8 @@ public class VehicleAlarmStatus {
 		} catch (Exception ex) {
 			Log.error("错误：", ex);
 		}
+		
+		log.info("报警列表"+JsonUtils.serialize(alarmKeys));
 
 		return alarmList;
 	}

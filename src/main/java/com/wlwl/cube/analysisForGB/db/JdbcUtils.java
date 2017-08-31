@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wlwl.cube.analysisForGB.redis.RedisUtils;
-import com.wlwl.cube.analysisForGB.tools.PropertyResource;
+
 
 import java.lang.reflect.Field;
 
@@ -37,11 +37,11 @@ public class JdbcUtils {
 	// 数据库用户名
 	private static final String USERNAME = "cube";
 	// 数据库密码
-	private static final String PASSWORD = PropertyResource.getInstance().getProperties().get("MYSQLPASSWORD");
+	private static final String PASSWORD = "STu2YW1bDF4p.pjA";//PropertyResource.getInstance().getProperties().get("MYSQLPASSWORD");
 	// 驱动信息
 	private static final String DRIVER = "com.mysql.jdbc.Driver";
 	// 数据库地址
-	private static final String URL =  PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
+	private static final String URL = "jdbc:mysql://10.252.248.176:3306/cube";// PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
 	private Connection connection;
 	//private PreparedStatement pstmt;
 	/**
