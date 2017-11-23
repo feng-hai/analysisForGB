@@ -93,7 +93,7 @@ public class VehicleAlarmStatus {
 			// String lng = lastValue.get(1);
 			// String domainId = lastValue.get(2);
 			// String fiber_unid = lastValue.get(3);
-			if (vi.getFiberid() != null) {
+			if (vi.getDomain() != null) {
 				List<Pair> pairs = this.omokObject.getAlarmList();
 				// log.info("有报警"+JsonUtils.serialize(pairs));
 
