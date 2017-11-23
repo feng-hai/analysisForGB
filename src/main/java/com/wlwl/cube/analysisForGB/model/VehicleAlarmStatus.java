@@ -1,6 +1,5 @@
 package com.wlwl.cube.analysisForGB.model;
 
-
 import java.util.ArrayList;
 
 import java.util.List;
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import com.esotericsoftware.minlog.Log;
 import com.wlwl.cube.analysisForGB.redis.RedisSingleton;
 import com.wlwl.cube.analysisForGB.redis.RedisUtils;
-import com.wlwl.cube.analysisForGB.tools.JsonUtils;
 
 public class VehicleAlarmStatus {
 	private ObjectModelOfKafka omokObject = null;
@@ -20,8 +18,10 @@ public class VehicleAlarmStatus {
 	private static Map<String, String> alarmKeys = new ConcurrentHashMap<>();
 
 	private static final String aiid_key = "ALARM_AIID_GB:";
-	
-	private static final Logger log=LoggerFactory.getLogger(VehicleAlarmStatus.class);
+
+	private static Map<String, VehicleInfo> vehicleInfo = new ConcurrentHashMap<>();
+	private static Long lastTime = System.currentTimeMillis();
+	private static final Logger log = LoggerFactory.getLogger(VehicleAlarmStatus.class);
 	Map<String, List<VehicleStatusBean>> statusMap = null;
 
 	public VehicleAlarmStatus(ObjectModelOfKafka omok) {
@@ -31,18 +31,22 @@ public class VehicleAlarmStatus {
 
 	public List<VehicleAlarmBean> getAlarmBean() {
 
-		
-		
+		if (System.currentTimeMillis() - lastTime > 1000 * 60 * 30)// 半小时清一下缓存
+		{
+			lastTime = System.currentTimeMillis();
+			vehicleInfo.clear();
+		}
+
 		List<VehicleAlarmBean> alarmList = new ArrayList<VehicleAlarmBean>();
 		try {
 			Pair vehiclePair = this.omokObject.getVehicle_UNID();
-			log.info("报警分析开始：");
+			// log.info("报警分析开始：");
 			if (vehiclePair == null) {
 				return alarmList;
 			}
-			log.info("报警车辆信息："+vehiclePair.toString());
+			// log.info("报警车辆信息："+vehiclePair.toString());
 			String date = this.omokObject.getDATIME_RX();
-			log.info("报警日期："+date);
+			// log.info("报警日期："+date);
 			if (date == null) {
 				return alarmList;
 			}
@@ -50,84 +54,109 @@ public class VehicleAlarmStatus {
 			if (unid == null) {
 				return alarmList;
 			}
-			
-			log.info("当前报警个数："+alarmKeys.size());
-			log.info("当前车辆是否有报警："+this.omokObject.getAlarmFlag());
-			
-			if (alarmKeys.size() == 0 && this.omokObject.getAlarmFlag() == 0) {
-				return alarmList;
-			}
 			String VehilceKey = "BIG_VEHICLE:" + unid;
-			List<String> lastValue = util.hmget(VehilceKey, "LAT_D", "LON_D", "domain_unid", "fiber_unid");
-			if (lastValue != null && lastValue.size() == 4) {
-				String lat = lastValue.get(0);
-				String lng = lastValue.get(1);
-				String domainId = lastValue.get(2);
-				String fiber_unid = lastValue.get(3);
-				if (lat != null && lng != null && domainId != null && fiber_unid != null) {
-					List<Pair> pairs = this.omokObject.getAlarmList();
-					log.info("有报警"+JsonUtils.serialize(pairs));
-					
-					for (Pair pair : pairs) {
-						if (pair != null) {
-							Boolean isTrue = pair.getValue().equals("1");
-							String code = pair.getAlias();
-							if (code == null) {
-								code = pair.getCode();
-							}
-							String errorName = pair.getTitle();
-							Integer level = this.omokObject.getAlarmFlag();
-							VehicleAlarmBean alarm = new VehicleAlarmBean();
-							alarm.setVehicleUnid(unid);
-							alarm.setDomainId(domainId);
-							alarm.setDateTime(date);
-							alarm.setErrorName(errorName);
-							alarm.setLat(lat);
-							alarm.setLng(lng);
-							alarm.setLevel(level);
-							alarm.setCode(code);
-							// 设置表后缀如：201702
-							String[] dataArray = date.split("-");
-							if (dataArray.length < 2) {
-								continue;
-							}
-							alarm.setTableSuf(dataArray[0] + dataArray[1]);
-							if (isTrue) {
-								if (!alarmKeys.containsKey(aiid_key + unid + code)) {
-									alarm.setIsBegin(true);
-									alarm.setUnid(UNID.getUnid());
-									alarmList.add(alarm);
-									alarmKeys.put(aiid_key + unid + code, alarm.getUnid());
-									
-									alarmKeys.put(aiid_key + unid + code + "suf", alarm.getTableSuf());
-								}
+			VehicleInfo vi = new VehicleInfo();
+			if (!vehicleInfo.containsKey(unid)) {
+				List<String> lastValue = util.hmget(VehilceKey, "LAT_D", "LON_D", "domain_unid", "fiber_unid");
+				if (lastValue != null && lastValue.size() == 4) {
+					String lat = lastValue.get(0);
+					String lng = lastValue.get(1);
+					String domainId = lastValue.get(2);
+					String fiber_unid = lastValue.get(3);
+					if (lat != null && lng != null && domainId != null && fiber_unid != null) {
+						vi.setDomain(domainId);
+						vi.setFiberid(fiber_unid);
+						vi.setLat(Double.parseDouble(lat));
+						vi.setLng(Double.parseDouble(lng));
+					}
+					vehicleInfo.put(unid, vi);
+				}
 
-							} else {
-								if (alarmKeys.containsKey(aiid_key + unid + code)
-										&& alarmKeys.containsKey(aiid_key + unid + code + "suf")) {
-									String id = alarmKeys.get(aiid_key + unid + code);
-									String suf = alarmKeys.get(aiid_key + unid + code + "suf");
-									if (id != null && suf != null) {
-										alarm.setUnid(id);
-										alarm.setIsBegin(false);
-										alarm.setTableSuf(suf);
-										alarmList.add(alarm);
-										alarmKeys.remove(aiid_key + unid + code);
-										alarmKeys.remove(aiid_key + unid + code + "suf");
-										
-									}
+			} else {
+				vi = vehicleInfo.get(unid);
+			}
+
+			// log.info("当前报警个数："+alarmKeys.size());
+			// log.info("当前车辆是否有报警："+this.omokObject.getAlarmFlag());
+
+			// if (alarmKeys.size() == 0 && this.omokObject.getAlarmFlag() ==
+			// -1) {
+			// return alarmList;
+			// }
+			// String VehilceKey = "BIG_VEHICLE:" + unid;
+			// List<String> lastValue = util.hmget(VehilceKey, "LAT_D", "LON_D",
+			// "domain_unid", "fiber_unid");
+			//
+
+			// if (lastValue != null && lastValue.size() == 4) {
+			// String lat = lastValue.get(0);
+			// String lng = lastValue.get(1);
+			// String domainId = lastValue.get(2);
+			// String fiber_unid = lastValue.get(3);
+			if (vi.getFiberid() != null) {
+				List<Pair> pairs = this.omokObject.getAlarmList();
+				// log.info("有报警"+JsonUtils.serialize(pairs));
+
+				for (Pair pair : pairs) {
+					if (pair != null) {
+						Boolean isTrue = pair.getValue().equals("1");
+						String code = pair.getAlias();
+						if (code == null) {
+							code = pair.getCode();
+						}
+						String errorName = pair.getTitle();
+						Integer level = this.omokObject.getAlarmFlag();
+						VehicleAlarmBean alarm = new VehicleAlarmBean();
+						alarm.setVehicleUnid(unid);
+						alarm.setDomainId(vi.getDomain());
+						alarm.setDateTime(date);
+						alarm.setErrorName(errorName);
+						alarm.setLat(String.valueOf(vi.getLat()));
+						alarm.setLng(String.valueOf(vi.getLng()));
+						alarm.setLevel(level);
+						alarm.setCode(code);
+						// 设置表后缀如：201702
+						String[] dataArray = date.split("-");
+						if (dataArray.length < 2) {
+							continue;
+						}
+						alarm.setTableSuf(dataArray[0] + dataArray[1]);
+						if (isTrue) {
+							if (!alarmKeys.containsKey(aiid_key + unid + code)) {
+								alarm.setIsBegin(true);
+								alarm.setUnid(UNID.getUnid());
+								alarmList.add(alarm);
+								alarmKeys.put(aiid_key + unid + code, alarm.getUnid());
+
+								alarmKeys.put(aiid_key + unid + code + "suf", alarm.getTableSuf());
+							}
+
+						} else {
+							if (alarmKeys.containsKey(aiid_key + unid + code)
+									&& alarmKeys.containsKey(aiid_key + unid + code + "suf")) {
+								String id = alarmKeys.get(aiid_key + unid + code);
+								String suf = alarmKeys.get(aiid_key + unid + code + "suf");
+								if (id != null && suf != null) {
+									alarm.setUnid(id);
+									alarm.setIsBegin(false);
+									alarm.setTableSuf(suf);
+									alarmList.add(alarm);
+									alarmKeys.remove(aiid_key + unid + code);
+									alarmKeys.remove(aiid_key + unid + code + "suf");
+
 								}
 							}
 						}
 					}
 				}
 			}
+			// }
 
 		} catch (Exception ex) {
 			Log.error("错误：", ex);
 		}
-		
-		log.info("报警列表"+JsonUtils.serialize(alarmKeys));
+
+		// log.info("报警列表"+JsonUtils.serialize(alarmKeys));
 
 		return alarmList;
 	}

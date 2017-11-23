@@ -249,12 +249,14 @@ public class LocationDB implements State {
 //			return;
 //		}
 		Boolean isMatch = false;
-
+		Log.info("车辆状态：" );
 		if (omok.getChargeStatusForBool()) {
+			Log.info("充电数据：" + id);
 			util.hset(id, Conf.ACTIVE_STATUS, String.valueOf(3));
 			util.hset(timekey, "default", StateUntils.formate(new Date()));
 			isMatch = true;
 		} else if (omok.getVehicleStatusForBool()) {
+			Log.info("车辆状态数据：" + id);
 			util.hset(id, Conf.ACTIVE_STATUS, String.valueOf(1));
 			util.hset(timekey, "default", StateUntils.formate(new Date()));
 			isMatch = true;

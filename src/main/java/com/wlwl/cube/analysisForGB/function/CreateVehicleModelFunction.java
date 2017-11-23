@@ -12,10 +12,12 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+
 import org.apache.storm.trident.operation.BaseFunction;
 import org.apache.storm.trident.operation.TridentCollector;
 import org.apache.storm.trident.tuple.TridentTuple;
 import org.apache.storm.tuple.Values;
+import org.mortbay.log.Log;
 
 import com.wlwl.cube.analysisForGB.model.ObjectModelOfKafka;
 import com.wlwl.cube.analysisForGB.tools.JsonUtils;
@@ -41,6 +43,7 @@ public class CreateVehicleModelFunction extends BaseFunction {
 			vehicle = JsonUtils.deserialize(
 					sentence.replace("TIMESTAMP", "timestamp").replaceAll("DATIME_RX", "datime_RX"),
 					ObjectModelOfKafka.class);
+			//Log.info(JsonUtils.serialize(vehicle));
 
 			if (vehicle != null) {
 

@@ -25,9 +25,8 @@ import com.wlwl.cube.analysisForGB.model.Pair;
 import com.wlwl.cube.analysisForGB.model.StoragerSingleton;
 import com.wlwl.cube.analysisForGB.model.TimeBaseRowStrategy;
 import com.wlwl.cube.analysisForGB.model.VehicleStatisticBean;
+import com.wlwl.cube.analysisForGB.tools.JsonUtils;
 import com.wlwl.cube.analysisForGB.tools.StateUntils;
-
-
 
 /**
  * @ClassName: SaveValueToRedisFunction
@@ -43,7 +42,7 @@ public class SaveValueToRedisFunction extends BaseFunction {
 
 	// private RedisUtils util = null;
 	private IStorager<VehicleStatisticBean> redis = null;
-	private static final Logger log=LoggerFactory.getLogger(SaveValueToRedisFunction.class);
+	private static final Logger log = LoggerFactory.getLogger(SaveValueToRedisFunction.class);
 
 	@Override
 	public void prepare(Map conf, TridentOperationContext context) {
@@ -70,17 +69,17 @@ public class SaveValueToRedisFunction extends BaseFunction {
 			Pair totalFule = omok.getTotalFuel();
 			String time = omok.getDATIME_RX();
 			String device = tuple.getStringByField("deviceId");
-
-			String id = preKey + TimeBaseRowStrategy.getRowKeyForRedis(time, device);
+			// log.info("车辆唯一标识"+device);
+			String id = preKey + "_GB_" + TimeBaseRowStrategy.getRowKeyForRedis(time, device);
 
 			// 判断key是否存在，如果不存在，创建，如果存在累计
 			if (redis.keyExists(id)) {
 				// 获取Redis中上次存储的值
 				VehicleStatisticBean vehicle = redis.getStorager(id);
 				// 更新公共数据
-			//	setPublicValue(vehicle, omok, device);
-				
-				
+				// setPublicValue(vehicle, omok, device);
+
+				vehicle.setVehicle_unid(device);
 				vehicle.setWorkTimeDateTime_temp(0);
 
 				// 结束时间为空时
@@ -103,7 +102,7 @@ public class SaveValueToRedisFunction extends BaseFunction {
 				// 工作时间统计
 				Date tempDate = StateUntils.strToDate(omok.getDATIME_RX());
 				if (tempDate.getTime() > vehicle.getWorkTimeDateTime_end_t().getTime()) {
-					
+
 					if (tempDate.getTime() - vehicle.getWorkTimeDateTime_end_t().getTime() >= 1000 * 60 * 5)// 判断是两次工作
 					{
 						vehicle.setWorkTimeDateTime_start_t(tempDate);
@@ -112,28 +111,28 @@ public class SaveValueToRedisFunction extends BaseFunction {
 					vehicle.setWorkTimeDateTime_end_t(tempDate);
 					vehicle.setWorkTimeCount(vehicle.getWorkTimeCount() + vehicle.getWorkTimeDateTime_end_t().getTime()
 							- vehicle.getWorkTimeDateTime_start_t().getTime());
-					//设置差值
+					// 设置差值
 					vehicle.setWorkTimeDateTime_temp(vehicle.getWorkTimeDateTime_end_t().getTime()
 							- vehicle.getWorkTimeDateTime_start_t().getTime());
-					
+
 					vehicle.setWorkTimeDateTime_start_t(vehicle.getWorkTimeDateTime_end_t());
-					
+
 					if (vehicle.getWorkTimeCount() / 3600000 > 24) {
 						vehicle.setWorkTimeCount(vehicle.getWorkTimeDateTime_end().getTime()
 								- vehicle.getWorkTimeDateTime_start().getTime());
 					}
-					//System.out.println(vehicle.getWorkTimeCount());
+					// System.out.println(vehicle.getWorkTimeCount());
 
-				} else if (tempDate.getTime() < vehicle.getWorkTimeDateTime_min_t().getTime()) {
-					vehicle.setWorkTimeCount(vehicle.getWorkTimeCount() + vehicle.getWorkTimeDateTime_min_t().getTime()
-							- tempDate.getTime());
-					//设置差值
-					vehicle.setWorkTimeDateTime_temp(vehicle.getWorkTimeDateTime_min_t().getTime()
-							- tempDate.getTime());
-					vehicle.setWorkTimeDateTime_min_t(tempDate);
+				} else if (tempDate.getTime() < vehicle.getWorkTimeDateTime_start_t().getTime()) {
+					vehicle.setWorkTimeCount(vehicle.getWorkTimeCount()
+							+ vehicle.getWorkTimeDateTime_start_t().getTime() - tempDate.getTime());
+					// 设置差值
+					vehicle.setWorkTimeDateTime_temp(
+							vehicle.getWorkTimeDateTime_start_t().getTime() - tempDate.getTime());
+					vehicle.setWorkTimeDateTime_start_t(tempDate);
 				}
 
-				//System.out.println(vehicle.getWorkTimeCount());
+				// System.out.println(vehicle.getWorkTimeCount());
 
 				// 判断当前数据和redis中数据时间对比，如果大于更新最大值，如果小于 更新最小值
 				if (omok.getDATIME_RX() != null && omok.getDATIME_RX() != "" && StateUntils
@@ -147,32 +146,35 @@ public class SaveValueToRedisFunction extends BaseFunction {
 					// 更新结束时间
 					vehicle.setWorkTimeDateTime_start(StateUntils.strToDate(omok.getDATIME_RX()));
 				}
-
-				if (totalMile != null && Double.parseDouble(totalMile.getValue()) > 0
-						&& Double.parseDouble(totalMile.getValue()) - vehicle.getWorkMile_start() >= 0) {
-					// 里程 最大值保存 过滤不正确的里程值
-					if (Double.parseDouble(totalMile.getValue()) > vehicle.getWorkMile_end()) {
-						vehicle.setWorkMile_end(Double.parseDouble(totalMile.getValue()));
-						vehicle.setWorkTotalMile(Double.parseDouble(totalMile.getValue()));
-						if (vehicle.getWorkMile_start() == 0) {
-							vehicle.setWorkMile_start(vehicle.getWorkMile_end());
+				 log.info("里程数"+JsonUtils.serialize(totalMile));
+				try {
+					if (totalMile != null &&totalMile.getValue()!=null&&!totalMile.getValue().equals("INVALID")&& Double.parseDouble(totalMile.getValue()) > 0
+							&& Double.parseDouble(totalMile.getValue()) - vehicle.getWorkMile_start() >= 0) {
+						// 里程 最大值保存 过滤不正确的里程值
+						if (Double.parseDouble(totalMile.getValue()) > vehicle.getWorkMile_end()) {
+							vehicle.setWorkMile_end(Double.parseDouble(totalMile.getValue()));
+							vehicle.setWorkTotalMile(Double.parseDouble(totalMile.getValue()));
+							if (vehicle.getWorkMile_start() == 0) {
+								vehicle.setWorkMile_start(vehicle.getWorkMile_end());
+							}
 						}
-					}
 
-					// 里程 最小值保存
-					if (Double.parseDouble(totalMile.getValue()) < vehicle.getWorkMile_start()) {
-						vehicle.setWorkMile_start(Double.parseDouble(totalMile.getValue()));
-					}
+						// 里程 最小值保存
+						if (Double.parseDouble(totalMile.getValue()) < vehicle.getWorkMile_start()) {
+							vehicle.setWorkMile_start(Double.parseDouble(totalMile.getValue()));
+						}
 
-					if (vehicle.getWorkMile_end() - vehicle.getWorkMile_start() > 0
-							&& vehicle.getWorkMile_end() - vehicle.getWorkMile_start() < 500) {
-						// 更新当日累计里程
-						vehicle.setWorkMileCount(vehicle.getWorkMile_end() - vehicle.getWorkMile_start());
-					}
+						if (vehicle.getWorkMile_end() - vehicle.getWorkMile_start() > 0
+								&& vehicle.getWorkMile_end() - vehicle.getWorkMile_start() < 500) {
+							// 更新当日累计里程
+							vehicle.setWorkMileCount(vehicle.getWorkMile_end() - vehicle.getWorkMile_start());
+						}
 
+					}
+				} catch (Exception ex) {
+					log.error("错误", ex);
 				}
-
-				if (totalEnergy != null && Double.parseDouble(totalEnergy.getValue()) > 0
+				if (totalEnergy != null && totalEnergy.getValue()!=null&&Double.parseDouble(totalEnergy.getValue()) > 0
 						&& Double.parseDouble(totalEnergy.getValue()) - vehicle.getWorkEnergy_start() >= 0) {
 					// 电耗 最大值保存
 					if (Double.parseDouble(totalEnergy.getValue()) > vehicle.getWorkEnergy_end()) {
@@ -193,7 +195,7 @@ public class SaveValueToRedisFunction extends BaseFunction {
 
 				}
 
-				if (totalFule != null && Double.parseDouble(totalFule.getValue()) > 0
+				if (totalFule != null &&totalFule.getValue()!=null&& Double.parseDouble(totalFule.getValue()) > 0
 						&& Double.parseDouble(totalFule.getValue()) - vehicle.getWorkFule_start() >= 0) {
 					// 能耗 最大值保存
 					if (Double.parseDouble(totalFule.getValue()) > vehicle.getWorkFule_end()) {
@@ -211,6 +213,8 @@ public class SaveValueToRedisFunction extends BaseFunction {
 						vehicle.setWorkFuleCount(vehicle.getWorkFule_end() - vehicle.getWorkFule_start());
 					}
 				}
+				vehicle.setVehicle_unid(device);
+				// log.info("提交到redis"+JsonUtils.serialize(vehicle));
 				redis.setStorager(id, vehicle);
 				collector.emit(new Values(vehicle));
 
@@ -230,21 +234,21 @@ public class SaveValueToRedisFunction extends BaseFunction {
 				// 添加新的记录
 				VehicleStatisticBean vehicle = new VehicleStatisticBean();
 				// 更新公共数据
-				//setPublicValue(vehicle, omok, device);
-
+				// setPublicValue(vehicle, omok, device);
+				vehicle.setVehicle_unid(device);
 				// 开始时间
-				if (totalMile != null && Double.parseDouble(totalMile.getValue()) > 0.0) {
+				if (totalMile != null && totalMile.getValue()!=null&&Double.parseDouble(totalMile.getValue()) > 0.0) {
 					vehicle.setWorkMile_start(Double.parseDouble(totalMile.getValue()));
 					vehicle.setWorkMile_end(Double.parseDouble(totalMile.getValue()));
 					vehicle.setWorkTotalMile(Double.parseDouble(totalMile.getValue()));
 				}
 
-				if (totalEnergy != null && Double.parseDouble(totalEnergy.getValue()) > 0.0) {
+				if (totalEnergy != null && totalEnergy.getValue()!=null&&Double.parseDouble(totalEnergy.getValue()) > 0.0) {
 					// 开始能耗
 					vehicle.setWorkEnergy_start(Double.parseDouble(totalEnergy.getValue()));
 					vehicle.setWorkEnergy_end(Double.parseDouble(totalEnergy.getValue()));
 				}
-				if (totalFule != null && Double.parseDouble(totalFule.getValue()) > 0.0) {
+				if (totalFule != null &&totalFule.getValue()!=null&& Double.parseDouble(totalFule.getValue()) > 0.0) {
 					// 开始油耗
 					vehicle.setWorkFule_start(Double.parseDouble(totalFule.getValue()));
 					vehicle.setWorkFule_end(Double.parseDouble(totalFule.getValue()));
@@ -259,7 +263,7 @@ public class SaveValueToRedisFunction extends BaseFunction {
 					redis.setStorager(id, vehicle);
 					collector.emit(new Values(vehicle));
 					// 删除昨天的缓存信息
-					String yestodayID = preKey + TimeBaseRowStrategy.getRowKeyForRedisBefore(time, device);
+					String yestodayID = preKey +"_GB_"+TimeBaseRowStrategy.getRowKeyForRedisBefore(time, device);
 					if (redis.keyExists(yestodayID)) {
 						redis.deleteByKey(yestodayID);
 					}
@@ -269,7 +273,7 @@ public class SaveValueToRedisFunction extends BaseFunction {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			log.error("错误",e);
+			log.error("错误", e);
 		}
 
 	}
@@ -279,16 +283,17 @@ public class SaveValueToRedisFunction extends BaseFunction {
 	 *         vehicle @param @param omok @param @param unid 设定文件 @return void
 	 *         返回类型 @throws
 	 */
-//	private void setPublicValue(VehicleStatisticBean vehicle, ObjectModelOfKafka omok, String unid) {
-//		Pair chargerStatus = omok.getChargeStatus();
-//		Pair chargeAll = omok.getChargeAll();
-//		vehicle.setVehicle_unid(unid);
-//		if (Double.parseDouble(chargeAll.getValue()) > 0) {
-//			vehicle.setChargeAll(Double.parseDouble(chargeAll.getValue()));
-//		}
-//		vehicle.setChargeStatus(chargerStatus.getValue());
-//
-//		vehicle.setStatisticDateTime(omok.getTIMESTAMP());
-//	}
+	// private void setPublicValue(VehicleStatisticBean vehicle,
+	// ObjectModelOfKafka omok, String unid) {
+	// Pair chargerStatus = omok.getChargeStatus();
+	// Pair chargeAll = omok.getChargeAll();
+	// vehicle.setVehicle_unid(unid);
+	// if (Double.parseDouble(chargeAll.getValue()) > 0) {
+	// vehicle.setChargeAll(Double.parseDouble(chargeAll.getValue()));
+	// }
+	// vehicle.setChargeStatus(chargerStatus.getValue());
+	//
+	// vehicle.setStatisticDateTime(omok.getTIMESTAMP());
+	// }
 
 }

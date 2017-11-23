@@ -148,10 +148,12 @@ public class ObjectModelOfKafka implements Serializable {
 		List<Pair> list = new ArrayList<Pair>();
 
 		for (Pair p : pairs) {
-			if ((p.getAlias().equals("faultLevel") || p.getCode().equals("faultLevel"))) {
-				p.setTitle("故障等级");
-				list.add(p);
-			} else if ((p.getAlias().equals("faultTag_0") || p.getCode().equals("faultTag_0"))) {
+			// if ((p.getAlias().equals("faultLevel") ||
+			// p.getCode().equals("faultLevel"))) {
+			// p.setTitle("故障等级");
+			// list.add(p);
+			// } else
+			if ((p.getAlias().equals("faultTag_0") || p.getCode().equals("faultTag_0"))) {
 				p.setTitle("温度差异报警");
 				list.add(p);
 			} else if ((p.getAlias().equals("faultTag_1") || p.getCode().equals("faultTag_1"))) {

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.wlwl.cube.analyse</groupId>
 	<artifactId>analysis-GB</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<name>analysis</name>
 	<description>分析cube系统的动态数据</description>
 

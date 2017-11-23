@@ -105,7 +105,7 @@ public class TridentKafkaTopology {
 //		}
 
 		//System.out.println("Using Kafka zookeeper url: " + zkUrl + " broker url: " + brokerUrl);
-		TridentKafkaSpout kafkaInstance = new TridentKafkaSpout(zkUrl, brokerUrl, "gb_parser_new");
+		TridentKafkaSpout kafkaInstance = new TridentKafkaSpout(zkUrl, brokerUrl, "gb_parser_web");
 		if (args.length == 1) {
 			Config conf = new Config();
 			conf.setMaxSpoutPending(20);

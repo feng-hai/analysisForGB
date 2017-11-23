@@ -7,6 +7,7 @@ import org.apache.storm.trident.operation.TridentCollector;
 import org.apache.storm.trident.state.BaseStateUpdater;
 import org.apache.storm.trident.tuple.TridentTuple;
 
+import com.esotericsoftware.minlog.Log;
 import com.wlwl.cube.analysisForGB.model.ObjectModelOfKafka;
 
 
@@ -19,6 +20,8 @@ public class LocationUpdater extends BaseStateUpdater<LocationDB> {
 
 	public void updateState(LocationDB state, List<TridentTuple> tuples, TridentCollector collector) {  
 
+		
+		Log.info("车辆状态");
 		List<ObjectModelOfKafka> omokList = new ArrayList<ObjectModelOfKafka>();
 		for (TridentTuple input : tuples) {
 			ObjectModelOfKafka omok = (ObjectModelOfKafka) input.getValueByField("vehicle");

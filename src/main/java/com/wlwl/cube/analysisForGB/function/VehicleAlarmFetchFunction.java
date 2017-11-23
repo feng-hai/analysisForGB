@@ -84,7 +84,7 @@ public class VehicleAlarmFetchFunction extends BaseFunction {
 				alarmList = vehicleAlarm.getAlarmBean();
 				collector.emit(new Values(alarmList));
 		} catch (Exception e) {
-			log.error("",e);
+			log.error("错误",e);
 		}
 
 		if (currentTime - lastTime > 1000 * 60 * 30) {

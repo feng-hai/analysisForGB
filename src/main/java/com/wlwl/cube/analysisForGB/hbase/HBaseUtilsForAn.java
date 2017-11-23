@@ -40,7 +40,7 @@ import com.wlwl.cube.analysisForGB.state.analysis.HBaseVehicleUpdate;
  * @date 2016年9月29日 上午11:30:06
  *
  */
-public class HBaseUtils {
+public class HBaseUtilsForAn {
 
 	private static Configuration conf=null;
 	private static Connection con=null;
@@ -53,8 +53,10 @@ public class HBaseUtils {
 		{
 			log.info("开始");
 			conf = HBaseConfiguration.create(); // 获得配制文件对象
-			// conf.set("hbase.zookeeper.quorum", "192.168.52.140");
-			try {
+		    conf.set("hbase.zookeeper.quorum", "namenode.cube,maria.cube,hyperrouter1.cube,hyperrouter2.cube,datanode1.cube");
+			conf.set("hbase.cluster.distributed", "true");
+			conf.set("hbase.rootdir", "hdfs://namenode.cube:9000/hbase");
+		    try {
 				con = ConnectionFactory.createConnection(conf);// 获得连接对象
 			} catch (IOException e) {
 				log.info("初始化错误",e);
@@ -149,7 +151,7 @@ public class HBaseUtils {
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
-			HBaseUtils.close();
+			HBaseUtilsForAn.close();
 		} finally {
 			
 		}
@@ -172,7 +174,7 @@ public class HBaseUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			HBaseUtils.close();
+			HBaseUtilsForAn.close();
 		}
 		return false;
 	}

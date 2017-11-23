@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.wlwl.cube.analysisForGB.model.ObjectModelOfKafka;
 import com.wlwl.cube.analysisForGB.model.Pair;
+import com.wlwl.cube.analysisForGB.tools.JsonUtils;
 
 
 
@@ -47,6 +48,7 @@ public class DeviceIDFunction extends BaseFunction {
 
 		ObjectModelOfKafka vehicleInfo = (ObjectModelOfKafka) tuple.getValueByField("vehicle");
 		Pair pair = vehicleInfo.getVehicle_UNID();
+		//slog.info(JsonUtils.serialize(pair));
 		if (pair != null) {
 			String device = pair.getValue();
 			collector.emit(new Values(device));

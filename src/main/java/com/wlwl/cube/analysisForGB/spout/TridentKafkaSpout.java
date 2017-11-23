@@ -126,10 +126,10 @@ public class TridentKafkaSpout {
 		// Fields("vehicle"), new LocationUpdater())
 		// .parallelismHint(25);
 		// //状态
-		stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
-				.partitionPersist(new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationDBFactory(),
-						new Fields("vehicle"), new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationUpdater())
-				.parallelismHint(10);
+//		stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
+//				.partitionPersist(new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationDBFactory(),
+//						new Fields("vehicle"), new com.wlwl.cube.analysisForGB.state.vehicleStatus.LocationUpdater())
+//				.parallelismHint(10);
 		// //报警
 		// stream.each(new Fields("vehicle"), new
 		// VehicleAlarmFetchFunction(statusMapAlarm), new Fields("vehicleInfo"))
@@ -139,14 +139,14 @@ public class TridentKafkaSpout {
 		// com.wlwl.cube.ananlyse.state.alarm.LocationUpdater())
 		// .parallelismHint(10);
 		// //分析
-		 stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
-		 .each(new Fields("deviceId", "vehicle"), new
-		 SaveValueToRedisFunction(), new Fields("vehicleInfo"))
-		 .parallelismHint(10)
-		 //.each(new Fields("countInfo"), new SaveValueToHBaseFunction(), new
-		// Fields("vehicleInfo"))
-		 .partitionPersist(new HBaseQueryVehicleFactory(), new
-		 Fields("vehicleInfo"), new HBaseVehicleUpdate()).parallelismHint(16);
+//		stream.partitionBy(new Fields("deviceId")).parallelismHint(2)
+//				.each(new Fields("deviceId", "vehicle"), new SaveValueToRedisFunction(), new Fields("vehicleInfo"))
+//				.parallelismHint(10)
+//				// .each(new Fields("countInfo"), new
+//				// SaveValueToHBaseFunction(), new
+//				// Fields("vehicleInfo"))
+//				.partitionPersist(new HBaseQueryVehicleFactory(), new Fields("vehicleInfo"), new HBaseVehicleUpdate())
+//				.parallelismHint(16);
 
 		return tridentTopology.build();
 	}

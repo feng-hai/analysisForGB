@@ -41,7 +41,7 @@ public class JdbcUtils {
 	// 驱动信息
 	private static final String DRIVER = "com.mysql.jdbc.Driver";
 	// 数据库地址
-	private static final String URL = "jdbc:mysql://10.252.248.176:3306/cube";// PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
+	private static final String URL = "jdbc:mysql://10.252.248.176:3306/cube";// 10.252.248.176:3306PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
 	private Connection connection;
 	//private PreparedStatement pstmt;
 	/**
