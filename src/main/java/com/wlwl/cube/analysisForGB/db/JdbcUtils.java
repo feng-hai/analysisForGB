@@ -37,11 +37,11 @@ public class JdbcUtils {
 	// 数据库用户名
 	private static final String USERNAME = "cube";
 	// 数据库密码
-	private static final String PASSWORD = "STu2YW1bDF4p.pjA";//PropertyResource.getInstance().getProperties().get("MYSQLPASSWORD");
+	private static final String PASSWORD = "XmmflV<01fOIxO";//PropertyResource.getInstance().getProperties().get("MYSQLPASSWORD");
 	// 驱动信息
 	private static final String DRIVER = "com.mysql.jdbc.Driver";
 	// 数据库地址
-	private static final String URL = "jdbc:mysql://10.252.248.176:3306/cube";// 10.252.248.176:3306PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
+	private static final String URL = "jdbc:mysql://172.16.21.225:3306/cube";// 10.252.248.176:3306PropertyResource.getInstance().getProperties().get("MYSQLURL") ;
 	private Connection connection;
 	//private PreparedStatement pstmt;
 	/**
