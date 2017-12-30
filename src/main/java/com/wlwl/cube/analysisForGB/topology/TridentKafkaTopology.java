@@ -87,11 +87,11 @@ public class TridentKafkaTopology {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		String zkUrl = "namenode.cube:2181,maria.cube:2181,hyperrouter1.cube:2181,hyperrouter2.cube:2181";//PropertyResource.getInstance().getProperties().get("zk.server");// "master:2181,node1:2181";
+		String zkUrl ="nn00-dev.ytsc.com:2181,dn00-dev.ytsc.com:2181,dn01-dev.ytsc.com:2181,dn02-dev.ytsc.com:2181";//PropertyResource.getInstance().getProperties().get("zk.server");// "master:2181,node1:2181";
 																																			// //
 																																			// the
 																																			// defaults.
-		String brokerUrl = "maria.cube:9092,namenode.cube:9092,datanode1.cube:9092,hyperrouter1.cube:9092,hyperrouter2.cube:9092";//PropertyResource.getInstance().getProperties().get("kafka.server"); // "node3:9092,node1:9092,node2:9092";//
+		String brokerUrl ="nn00-dev.ytsc.com:9092,dn00-dev.ytsc.com:9092,dn01-dev.ytsc.com:9092,dn02-dev.ytsc.com:9092";//PropertyResource.getInstance().getProperties().get("kafka.server"); // "node3:9092,node1:9092,node2:9092";//
 
 //		if (args.length > 3 || (args.length == 1 && args[0].matches("^-h|--help$"))) {
 //			System.out.println("Usage: TridentKafkaWordCount [kafka zookeeper url] [kafka broker url] [topology name]");
