@@ -22,7 +22,7 @@ import redis.clients.jedis.Response;
 public class RedisUtils {
 
 	private JedisPool pool = null;
-	private static final String ip ="10.117.17.40";//PropertyResource.getInstance().getProperties().get("REDISURL");
+	private static final String ip ="192.168.1.21";//PropertyResource.getInstance().getProperties().get("REDISURL");
 	private static final Integer port = 6379;
 
 	/**
