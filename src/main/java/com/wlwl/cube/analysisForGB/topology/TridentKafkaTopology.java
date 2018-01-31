@@ -91,7 +91,7 @@ public class TridentKafkaTopology {
 																																			// //
 																																			// the
 																																			// defaults.
-		String brokerUrl = "maria.cube:9092,namenode.cube:9092,datanode1.cube:9092,hyperrouter1.cube:9092,hyperrouter2.cube:9092";//PropertyResource.getInstance().getProperties().get("kafka.server"); // "node3:9092,node1:9092,node2:9092";//
+		String brokerUrl = "maria.cube:9092,namenode.cube:9092,datanode1.cube:9092,hyperrouter1.cube:9092,hyperrouter2.cube:9092,hyperrouter4.cube:9092";//PropertyResource.getInstance().getProperties().get("kafka.server"); // "node3:9092,node1:9092,node2:9092";//
 
 //		if (args.length > 3 || (args.length == 1 && args[0].matches("^-h|--help$"))) {
 //			System.out.println("Usage: TridentKafkaWordCount [kafka zookeeper url] [kafka broker url] [topology name]");
