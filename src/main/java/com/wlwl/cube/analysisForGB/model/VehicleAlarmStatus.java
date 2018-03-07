@@ -31,7 +31,7 @@ public class VehicleAlarmStatus {
 
 	public List<VehicleAlarmBean> getAlarmBean() {
 
-		if (System.currentTimeMillis() - lastTime > 1000 * 60 * 30)// 半小时清一下缓存
+		if (System.currentTimeMillis() - lastTime > 1000 * 60 * 5)// 半小时清一下缓存
 		{
 			lastTime = System.currentTimeMillis();
 			vehicleInfo.clear();
@@ -68,8 +68,9 @@ public class VehicleAlarmStatus {
 						vi.setFiberid(fiber_unid);
 						vi.setLat(Double.parseDouble(lat));
 						vi.setLng(Double.parseDouble(lng));
+						vehicleInfo.put(unid, vi);
 					}
-					vehicleInfo.put(unid, vi);
+					
 				}
 
 			} else {
@@ -127,8 +128,42 @@ public class VehicleAlarmStatus {
 								alarm.setUnid(UNID.getUnid());
 								alarmList.add(alarm);
 								alarmKeys.put(aiid_key + unid + code, alarm.getUnid());
+								
+								alarmKeys.put(aiid_key + unid + code+"level", level.toString());
 
 								alarmKeys.put(aiid_key + unid + code + "suf", alarm.getTableSuf());
+							}else
+							{
+								String levelStr=alarmKeys.get(aiid_key + unid + code+"level");
+								if(!levelStr.equals(level.toString()))
+								{
+									//解除上一个报警
+									if (alarmKeys.containsKey(aiid_key + unid + code)
+											&& alarmKeys.containsKey(aiid_key + unid + code + "suf")) {
+										String id = alarmKeys.get(aiid_key + unid + code);
+										String suf = alarmKeys.get(aiid_key + unid + code + "suf");
+										if (id != null && suf != null) {
+											VehicleAlarmBean alarmOld = new VehicleAlarmBean();
+											alarmOld.setUnid(id);
+											alarmOld.setIsBegin(false);
+											alarmOld.setTableSuf(suf);
+											alarmOld.setDateTime(date);
+											alarmList.add(alarmOld);
+											alarmKeys.remove(aiid_key + unid + code);
+											alarmKeys.remove(aiid_key + unid + code + "suf");
+											alarmKeys.remove(aiid_key + unid + code+"level");
+											//添加新的报警
+											alarm.setIsBegin(true);
+											alarm.setUnid(UNID.getUnid());
+											alarmList.add(alarm);
+											alarmKeys.put(aiid_key + unid + code, alarm.getUnid());
+											alarmKeys.put(aiid_key + unid + code+"level", level.toString());
+											alarmKeys.put(aiid_key + unid + code + "suf", alarm.getTableSuf());
+										}
+									}
+									
+									
+								}
 							}
 
 						} else {
@@ -143,6 +178,7 @@ public class VehicleAlarmStatus {
 									alarmList.add(alarm);
 									alarmKeys.remove(aiid_key + unid + code);
 									alarmKeys.remove(aiid_key + unid + code + "suf");
+									alarmKeys.remove(aiid_key + unid + code+"level");
 
 								}
 							}
